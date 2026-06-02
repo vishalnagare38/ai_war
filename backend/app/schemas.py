@@ -31,6 +31,10 @@ class AnalyzeResponse(BaseModel):
     ml_risk_probability: float
     ml_risk_label: str
     delay_likelihood: float
+    
+    consensus_score: float
+    agent_agreement: str
+    processing_time_seconds: float
 
     executive_summary: str
     final_decision: str

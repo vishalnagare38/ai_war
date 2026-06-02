@@ -3,6 +3,9 @@
 import { useMemo, useState } from "react";
 
 type AnalyzeResponse = {
+  consensus_score: number;
+  agent_agreement: string;
+  processing_time_seconds: number;
   meeting_title?: string;
   summary: string;
   action_items: string[];
@@ -302,23 +305,32 @@ export default function Home() {
                   <MetricCard
                     label="Overall Risk"
                     value={result.overall_risk_level.toUpperCase()}
-                    subtext="Coordinator final assessment"
-                  />
-                  <MetricCard
-                    label="ML Risk Probability"
-                    value={`${(result.ml_risk_probability * 100).toFixed(1)}%`}
-                    subtext="Predictive analytics score"
-                  />
-                  <MetricCard
+                    />
+
+                    <MetricCard
+                    label="ML Risk"
+                    value={`${(result.ml_risk_probability * 100).toFixed(0)}%`}
+                    />
+
+                    <MetricCard
                     label="Risk Label"
                     value={result.ml_risk_label.toUpperCase()}
-                    subtext="Model prediction"
-                  />
-                  <MetricCard
-                    label="Confidence"
-                    value={`${(result.confidence_score * 100).toFixed(0)}%`}
-                    subtext="Product agent confidence"
-                  />
+                    />
+
+                    <MetricCard
+                    label="Consensus"
+                    value={`${(result.consensus_score * 100).toFixed(0)}%`}
+                    />
+
+                    <MetricCard
+                    label="Agreement"
+                    value={result.agent_agreement.toUpperCase()}
+                    />
+
+                    <MetricCard
+                    label="Processing Time"
+                    value={`${result.processing_time_seconds}s`}
+                    />
                 </div>
 
                 <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">

@@ -28,8 +28,13 @@ class MeetingState(TypedDict, total=False):
     ml_risk_label: str
     delay_likelihood: float
 
+    consensus_score: float
+    agent_agreement: str
+
     executive_summary: str
     final_decision: str
     priority_actions: List[str]
     overall_risk_level: str
     coordinator_notes: List[str]
+
+    processing_time_seconds: float
