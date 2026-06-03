@@ -3,9 +3,6 @@
 import { useMemo, useState } from "react";
 
 type AnalyzeResponse = {
-  consensus_score: number;
-  agent_agreement: string;
-  processing_time_seconds: number;
   meeting_title?: string;
   summary: string;
   action_items: string[];
@@ -30,6 +27,10 @@ type AnalyzeResponse = {
   ml_risk_label: string;
   delay_likelihood: number;
 
+  consensus_score: number;
+  agent_agreement: string;
+  processing_time_seconds: number;
+
   executive_summary: string;
   final_decision: string;
   priority_actions: string[];
@@ -48,6 +49,7 @@ const pipeline = [
   "Finance Agent",
   "Risk Agent",
   "ML Scorer",
+  "Consensus",
   "Coordinator",
 ];
 
@@ -95,11 +97,7 @@ function MetricCard({
   );
 }
 
-function Pill({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function Pill({ children }: { children: React.ReactNode }) {
   return (
     <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-sm">
       {children}
@@ -110,6 +108,7 @@ function Pill({
 export default function Home() {
   const [meetingTitle, setMeetingTitle] = useState(DEMO_MEETING_TITLE);
   const [transcript, setTranscript] = useState(DEMO_TRANSCRIPT);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
@@ -119,29 +118,59 @@ export default function Home() {
     []
   );
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setSelectedFile(file);
+    setError("");
+  };
+
+  const loadDemo = () => {
+    setMeetingTitle(DEMO_MEETING_TITLE);
+    setTranscript(DEMO_TRANSCRIPT);
+    setSelectedFile(null);
+    setError("");
+    setResult(null);
+  };
+
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setResult(null);
 
-    if (transcript.trim().length < 20) {
-      setError("Please enter a longer transcript.");
+    const hasTranscript = transcript.trim().length >= 20;
+    const hasFile = selectedFile !== null;
+
+    if (!hasTranscript && !hasFile) {
+      setError("Please paste a transcript or upload a .txt/.pdf file.");
       return;
     }
 
     try {
       setLoading(true);
 
-      const response = await fetch(`${apiUrl}/api/analyze`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          meeting_title: meetingTitle || null,
-          transcript,
-        }),
-      });
+      let response: Response;
+
+      if (hasFile) {
+        const formData = new FormData();
+        formData.append("meeting_title", meetingTitle || "");
+        formData.append("file", selectedFile as File);
+
+        response = await fetch(`${apiUrl}/api/analyze-upload`, {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        response = await fetch(`${apiUrl}/api/analyze`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            meeting_title: meetingTitle || null,
+            transcript,
+          }),
+        });
+      }
 
       if (!response.ok) {
         const data = await response.json();
@@ -155,13 +184,6 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadDemo = () => {
-    setMeetingTitle(DEMO_MEETING_TITLE);
-    setTranscript(DEMO_TRANSCRIPT);
-    setError("");
-    setResult(null);
   };
 
   return (
@@ -184,8 +206,8 @@ export default function Home() {
           </h1>
 
           <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
-            Paste a meeting transcript and get product, engineering, finance,
-            risk, and coordinator insights with predictive risk scoring.
+            Paste a meeting transcript or upload a .txt / .pdf file and get product,
+            engineering, finance, risk, and coordinator insights with predictive risk scoring.
           </p>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -239,7 +261,31 @@ export default function Home() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Transcript
+                  Upload Meeting File (.txt / .pdf)
+                </label>
+                <input
+                  type="file"
+                  accept=".txt,.pdf"
+                  onChange={handleFileChange}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-white hover:file:bg-blue-700"
+                />
+                {selectedFile ? (
+                  <div className="mt-2 flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                    <span>Selected: {selectedFile.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFile(null)}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Or Paste Transcript
                 </label>
                 <textarea
                   value={transcript}
@@ -277,26 +323,12 @@ export default function Home() {
                 </p>
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                  <MetricCard
-                    label="Overall Risk"
-                    value="—"
-                    subtext="Coordinator final assessment"
-                  />
-                  <MetricCard
-                    label="ML Risk Probability"
-                    value="—"
-                    subtext="Predictive analytics score"
-                  />
-                  <MetricCard
-                    label="Risk Label"
-                    value="—"
-                    subtext="Model prediction"
-                  />
-                  <MetricCard
-                    label="Confidence"
-                    value="—"
-                    subtext="Product agent confidence"
-                  />
+                  <MetricCard label="Overall Risk" value="—" subtext="Coordinator final assessment" />
+                  <MetricCard label="ML Risk Probability" value="—" subtext="Predictive analytics score" />
+                  <MetricCard label="Risk Label" value="—" subtext="Model prediction" />
+                  <MetricCard label="Consensus" value="—" subtext="Cross-agent agreement" />
+                  <MetricCard label="Agreement" value="—" subtext="Consensus level" />
+                  <MetricCard label="Processing Time" value="—" subtext="End-to-end runtime" />
                 </div>
               </div>
             ) : (
@@ -305,32 +337,33 @@ export default function Home() {
                   <MetricCard
                     label="Overall Risk"
                     value={result.overall_risk_level.toUpperCase()}
-                    />
-
-                    <MetricCard
-                    label="ML Risk"
-                    value={`${(result.ml_risk_probability * 100).toFixed(0)}%`}
-                    />
-
-                    <MetricCard
+                    subtext="Coordinator final assessment"
+                  />
+                  <MetricCard
+                    label="ML Risk Probability"
+                    value={`${(result.ml_risk_probability * 100).toFixed(1)}%`}
+                    subtext="Predictive analytics score"
+                  />
+                  <MetricCard
                     label="Risk Label"
                     value={result.ml_risk_label.toUpperCase()}
-                    />
-
-                    <MetricCard
+                    subtext="Model prediction"
+                  />
+                  <MetricCard
                     label="Consensus"
                     value={`${(result.consensus_score * 100).toFixed(0)}%`}
-                    />
-
-                    <MetricCard
+                    subtext="Cross-agent agreement"
+                  />
+                  <MetricCard
                     label="Agreement"
                     value={result.agent_agreement.toUpperCase()}
-                    />
-
-                    <MetricCard
+                    subtext="Consensus level"
+                  />
+                  <MetricCard
                     label="Processing Time"
                     value={`${result.processing_time_seconds}s`}
-                    />
+                    subtext="End-to-end runtime"
+                  />
                 </div>
 
                 <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
@@ -354,16 +387,10 @@ export default function Home() {
                 <Section title="Product Recommendations" items={result.recommendations} />
                 <Section title="Engineering Insights" items={result.engineering_insights} />
                 <Section title="Engineering Risks" items={result.engineering_risks} />
-                <Section
-                  title="Engineering Recommendations"
-                  items={result.engineering_recommendations}
-                />
+                <Section title="Engineering Recommendations" items={result.engineering_recommendations} />
                 <Section title="Finance Insights" items={result.finance_insights} />
                 <Section title="Finance Risks" items={result.finance_risks} />
-                <Section
-                  title="Finance Recommendations"
-                  items={result.finance_recommendations}
-                />
+                <Section title="Finance Recommendations" items={result.finance_recommendations} />
                 <Section title="Risk Insights" items={result.risk_insights} />
                 <Section title="Risk Recommendations" items={result.risk_recommendations} />
 
