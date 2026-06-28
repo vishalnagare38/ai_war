@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+
 type AnalyzeResponse = {
   meeting_title?: string;
   summary: string;
@@ -29,7 +30,14 @@ type AnalyzeResponse = {
 
   consensus_score: number;
   agent_agreement: string;
+  consensus_factors: string[];
+
+  meeting_health_score: number;
+  meeting_health_label: string;
+
   processing_time_seconds: number;
+  agent_timings: Record<string, number>;
+  consensus_reason: string;
 
   executive_summary: string;
   final_decision: string;
@@ -88,11 +96,33 @@ function MetricCard({
   value: string;
   subtext?: string;
 }) {
+
+  const color =
+    value.toLowerCase().includes("high")
+      ? "text-red-600"
+      : value.toLowerCase().includes("medium")
+      ? "text-yellow-600"
+      : value.toLowerCase().includes("low")
+      ? "text-green-600"
+      : value.includes("/100")
+      ? "text-blue-600"
+      : "text-slate-900";
+
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
-      {subtext ? <p className="mt-2 text-sm text-slate-500">{subtext}</p> : null}
+      <p className="text-sm text-slate-500">
+        {label}
+      </p>
+
+      <p className={`mt-2 text-2xl font-bold ${color}`}>
+        {value}
+      </p>
+
+      {subtext && (
+        <p className="mt-2 text-sm text-slate-500">
+          {subtext}
+        </p>
+      )}
     </div>
   );
 }
@@ -112,6 +142,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const apiUrl = useMemo(
     () => process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000",
@@ -183,6 +214,44 @@ export default function Home() {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const downloadPdf = async () => {
+    if (!result) return;
+
+    try {
+      setPdfLoading(true);
+      setError("");
+
+      const response = await fetch(`${apiUrl}/api/report/pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(result),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.detail || "Failed to generate PDF.");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${(meetingTitle || "Meeting_War_Room_Report").replace(/\s+/g, "_")}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not download PDF.");
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -328,11 +397,23 @@ export default function Home() {
                   <MetricCard label="Risk Label" value="—" subtext="Model prediction" />
                   <MetricCard label="Consensus" value="—" subtext="Cross-agent agreement" />
                   <MetricCard label="Agreement" value="—" subtext="Consensus level" />
+                  <MetricCard label="Meeting Health" value="—" subtext="Overall meeting health" />
                   <MetricCard label="Processing Time" value="—" subtext="End-to-end runtime" />
                 </div>
               </div>
             ) : (
               <>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={downloadPdf}
+                    disabled={pdfLoading}
+                    className="rounded-2xl bg-blue-600 px-5 py-3 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {pdfLoading ? "Preparing PDF..." : "Download PDF Report"}
+                  </button>
+                </div>
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   <MetricCard
                     label="Overall Risk"
@@ -360,6 +441,11 @@ export default function Home() {
                     subtext="Consensus level"
                   />
                   <MetricCard
+                    label="Meeting Health"
+                    value={`${result.meeting_health_score}/100`}
+                    subtext={result.meeting_health_label}
+                  />
+                  <MetricCard
                     label="Processing Time"
                     value={`${result.processing_time_seconds}s`}
                     subtext="End-to-end runtime"
@@ -382,6 +468,16 @@ export default function Home() {
                   <p className="mt-3 text-slate-700">{result.final_decision}</p>
                 </div>
 
+                <Section title="Consensus Factors" items={result.consensus_factors} />
+                <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-2xl font-semibold text-slate-900">
+                    Consensus Explanation
+                  </h2>
+
+                  <p className="mt-4 leading-7 text-slate-700">
+                    {result.consensus_reason}
+                  </p>
+                </div>
                 <Section title="Priority Actions" items={result.priority_actions} />
                 <Section title="Product Risks" items={result.risks} />
                 <Section title="Product Recommendations" items={result.recommendations} />
@@ -393,6 +489,50 @@ export default function Home() {
                 <Section title="Finance Recommendations" items={result.finance_recommendations} />
                 <Section title="Risk Insights" items={result.risk_insights} />
                 <Section title="Risk Recommendations" items={result.risk_recommendations} />
+
+                <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-2xl font-semibold text-slate-900">
+                    Agent Execution Timeline
+                  </h2>
+
+                  <div className="mt-6 space-y-4">
+
+                    {Object.entries(result.agent_timings).map(([agent,time]) => (
+
+                      <div
+                        key={agent}
+                        className="space-y-2"
+                      >
+
+                        <div className="flex justify-between">
+
+                          <span className="font-medium">
+                            {agent}
+                          </span>
+
+                          <span className="text-sm text-slate-500">
+                            {time.toFixed(2)}s
+                          </span>
+
+                        </div>
+
+                        <div className="h-3 rounded-full bg-slate-200">
+
+                          <div
+                            className="h-3 rounded-full bg-blue-600"
+                            style={{
+                              width: `${Math.min((time / result.processing_time_seconds) * 100,100)}%`,
+                            }}
+                          />
+
+                        </div>
+
+                      </div>
+
+                    ))}
+
+                  </div>
+                </div>
 
                 <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
                   <h2 className="text-2xl font-semibold text-slate-900">

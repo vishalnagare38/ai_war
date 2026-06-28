@@ -1,4 +1,5 @@
 from typing import Dict
+import time
 
 from app.agents.schemas import EngineeringAgentOutput
 from app.llm.structured import call_structured_gemini
@@ -6,6 +7,8 @@ from app.llm.structured import call_structured_gemini
 
 class EngineeringAgent:
     def analyze(self, transcript: str) -> Dict[str, object]:
+        start = time.time()
+
         prompt = f"""
 You are the Engineering Agent in a multi-agent meeting analysis system.
 
@@ -28,4 +31,5 @@ Transcript:
         return {
             **parsed.model_dump(),
             "agent_used": "EngineeringAgent-LLM",
+            "_duration": round(time.time() - start, 2),
         }

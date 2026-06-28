@@ -1,4 +1,5 @@
 from typing import Dict
+import time
 
 from app.agents.product_schema import ProductAgentOutput
 from app.llm.structured import call_structured_gemini
@@ -6,11 +7,12 @@ from app.llm.structured import call_structured_gemini
 
 class ProductAgent:
     def analyze(self, transcript: str) -> Dict[str, object]:
+        start = time.time()
+
         prompt = f"""
 You are the Product Agent in a multi-agent meeting analysis system.
 
 Analyze the meeting transcript and return:
-
 - summary
 - action_items
 - risks
@@ -27,10 +29,7 @@ Transcript:
 {transcript}
 """.strip()
 
-        parsed = call_structured_gemini(
-            prompt=prompt,
-            schema=ProductAgentOutput
-        )
+        parsed = call_structured_gemini(prompt, ProductAgentOutput)
 
         return {
             "summary": parsed.summary,
@@ -39,4 +38,5 @@ Transcript:
             "recommendations": parsed.recommendations,
             "confidence_score": parsed.confidence_score,
             "agent_used": "ProductAgent-LLM",
+            "_duration": round(time.time() - start, 2),
         }

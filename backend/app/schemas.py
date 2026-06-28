@@ -1,5 +1,6 @@
+from typing import Dict, List, Optional
+
 from pydantic import BaseModel, Field
-from typing import List, Optional
 
 
 class TranscriptAnalyzeRequest(BaseModel):
@@ -8,6 +9,10 @@ class TranscriptAnalyzeRequest(BaseModel):
 
 
 class AnalyzeResponse(BaseModel):
+    meeting_id: Optional[str] = None
+    created_at: Optional[str] = None
+    version: str = "1.0"
+
     meeting_title: Optional[str] = None
     summary: str
     action_items: List[str]
@@ -31,10 +36,17 @@ class AnalyzeResponse(BaseModel):
     ml_risk_probability: float
     ml_risk_label: str
     delay_likelihood: float
-    
+
     consensus_score: float
     agent_agreement: str
+    consensus_factors: List[str]
+    consensus_reason: str
+
+    meeting_health_score: int
+    meeting_health_label: str
+
     processing_time_seconds: float
+    agent_timings: Dict[str, float]
 
     executive_summary: str
     final_decision: str

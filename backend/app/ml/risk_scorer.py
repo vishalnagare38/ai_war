@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+import time
 
 import joblib
 
@@ -37,6 +38,7 @@ class RiskPrediction:
     probability: float
     label: str
     delay_likelihood: float
+    duration: float = 0.01
 
 
 class RiskScorer:
@@ -45,7 +47,9 @@ class RiskScorer:
         self.model = joblib.load(BASE_DIR / "model.pkl")
         self.vectorizer = joblib.load(BASE_DIR / "vectorizer.pkl")
 
-    def predict(self, transcript: str):
+    def predict(self, transcript: str) -> RiskPrediction:
+
+        start = time.perf_counter()
 
         features = extract_features(transcript)
 
@@ -55,21 +59,26 @@ class RiskScorer:
             self.model.predict_proba(X)[0][1]
         )
 
-        # avoid unrealistic 100%
         probability = max(
             0.05,
-            min(probability, 0.95)
+            min(probability, 0.95),
         )
 
-        if probability >= 0.7:
+        if probability >= 0.70:
             label = "high"
-        elif probability >= 0.4:
+        elif probability >= 0.40:
             label = "medium"
         else:
             label = "low"
+
+        duration = max(
+            round(time.perf_counter() - start, 3),
+            0.01,
+        )
 
         return RiskPrediction(
             probability=round(probability, 3),
             label=label,
             delay_likelihood=round(probability, 3),
+            duration=duration,
         )
