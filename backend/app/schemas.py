@@ -5,15 +5,26 @@ from pydantic import BaseModel, Field
 
 class TranscriptAnalyzeRequest(BaseModel):
     meeting_title: Optional[str] = None
-    transcript: str = Field(..., min_length=20, description="Meeting transcript text")
+    transcript: str = Field(
+        ...,
+        min_length=20,
+        description="Meeting transcript text",
+    )
 
 
 class AnalyzeResponse(BaseModel):
+    # ===============================
+    # Metadata
+    # ===============================
     meeting_id: Optional[str] = None
     created_at: Optional[str] = None
     version: str = "1.0"
 
     meeting_title: Optional[str] = None
+
+    # ===============================
+    # Product Agent
+    # ===============================
     summary: str
     action_items: List[str]
     risks: List[str]
@@ -21,33 +32,60 @@ class AnalyzeResponse(BaseModel):
     confidence_score: float
     agent_used: str
 
+    # ===============================
+    # Engineering Agent
+    # ===============================
     engineering_insights: List[str]
     engineering_risks: List[str]
     engineering_recommendations: List[str]
 
+    # ===============================
+    # Finance Agent
+    # ===============================
     finance_insights: List[str]
     finance_risks: List[str]
     finance_recommendations: List[str]
 
+    # ===============================
+    # Risk Agent
+    # ===============================
     risk_insights: List[str]
     risk_level: str
     risk_recommendations: List[str]
 
+    # ===============================
+    # ML Model
+    # ===============================
     ml_risk_probability: float
     ml_risk_label: str
     delay_likelihood: float
 
+    # ===============================
+    # Consensus Engine
+    # ===============================
     consensus_score: float
     agent_agreement: str
     consensus_factors: List[str]
     consensus_reason: str
 
+    # ===============================
+    # Meeting Health
+    # ===============================
     meeting_health_score: int
     meeting_health_label: str
 
+    # ===============================
+    # Performance
+    # ===============================
     processing_time_seconds: float
     agent_timings: Dict[str, float]
 
+    # Timeline (used in PDF and future dashboard)
+    timeline: List[Dict] = []
+
+    # ===============================
+    # Coordinator
+    # ===============================
     executive_summary: str
     final_decision: str
     priority_actions: List[str]
