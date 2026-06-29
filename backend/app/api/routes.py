@@ -9,14 +9,16 @@ from fastapi.responses import StreamingResponse
 
 from app.db.meeting_repository import MeetingRepository
 from app.graph.workflow import build_workflow
-from app.schemas import AnalyzeResponse, TranscriptAnalyzeRequest
+from app.schemas import AnalyzeResponse, TranscriptAnalyzeRequest, DashboardResponse
 from app.utils.file_parser import extract_transcript_text
 from app.utils.pdf_report import build_pdf_bytes
+from app.services.history_intelligence import HistoryIntelligence
 
 router = APIRouter(prefix="/api", tags=["Meeting War Room"])
 
 workflow = build_workflow()
 repository = MeetingRepository()
+history_service = HistoryIntelligence()
 
 
 def build_analyze_response(
@@ -25,11 +27,20 @@ def build_analyze_response(
 ) -> AnalyzeResponse:
 
     return AnalyzeResponse(
+
+        # =====================================
+        # Metadata
+        # =====================================
+
         meeting_id=result.get("meeting_id"),
         created_at=result.get("created_at"),
         version=result.get("version", "1.0"),
 
         meeting_title=meeting_title,
+
+        # =====================================
+        # Product Agent
+        # =====================================
 
         summary=result.get("summary", ""),
         action_items=result.get("action_items", []),
@@ -38,88 +49,192 @@ def build_analyze_response(
         confidence_score=result.get("confidence_score", 0.0),
         agent_used=result.get("agent_used", "unknown"),
 
-        engineering_insights=result.get("engineering_insights", []),
-        engineering_risks=result.get("engineering_risks", []),
+        # =====================================
+        # Engineering
+        # =====================================
+
+        engineering_insights=result.get(
+            "engineering_insights",
+            [],
+        ),
+
+        engineering_risks=result.get(
+            "engineering_risks",
+            [],
+        ),
+
         engineering_recommendations=result.get(
             "engineering_recommendations",
             [],
         ),
 
-        finance_insights=result.get("finance_insights", []),
-        finance_risks=result.get("finance_risks", []),
+        # =====================================
+        # Finance
+        # =====================================
+
+        finance_insights=result.get(
+            "finance_insights",
+            [],
+        ),
+
+        finance_risks=result.get(
+            "finance_risks",
+            [],
+        ),
+
         finance_recommendations=result.get(
             "finance_recommendations",
             [],
         ),
 
-        risk_insights=result.get("risk_insights", []),
-        risk_level=result.get("risk_level", "low"),
+        # =====================================
+        # Risk
+        # =====================================
+
+        risk_insights=result.get(
+            "risk_insights",
+            [],
+        ),
+
+        risk_level=result.get(
+            "risk_level",
+            "low",
+        ),
+
         risk_recommendations=result.get(
             "risk_recommendations",
             [],
         ),
 
+        # =====================================
+        # ML
+        # =====================================
+
         ml_risk_probability=result.get(
             "ml_risk_probability",
             0.0,
         ),
-        ml_risk_label=result.get("ml_risk_label", "low"),
+
+        ml_risk_label=result.get(
+            "ml_risk_label",
+            "low",
+        ),
+
         delay_likelihood=result.get(
             "delay_likelihood",
             0.0,
         ),
 
+        # =====================================
+        # Consensus
+        # =====================================
+
         consensus_score=result.get(
             "consensus_score",
             0.0,
         ),
+
         agent_agreement=result.get(
             "agent_agreement",
             "low",
         ),
+
         consensus_factors=result.get(
             "consensus_factors",
             [],
         ),
+
         consensus_reason=result.get(
             "consensus_reason",
             "",
         ),
 
+        # =====================================
+        # Meeting Health
+        # =====================================
+
         meeting_health_score=result.get(
             "meeting_health_score",
             0,
         ),
+
         meeting_health_label=result.get(
             "meeting_health_label",
             "Unknown",
         ),
 
+        # =====================================
+        # NEW PROJECT INTELLIGENCE
+        # =====================================
+
+        history_summary=result.get(
+            "history_summary",
+            "",
+        ),
+
+        recurring_blockers=result.get(
+            "recurring_blockers",
+            [],
+        ),
+
+        risk_trend=result.get(
+            "risk_trend",
+            "Unknown",
+        ),
+
+        health_trend=result.get(
+            "health_trend",
+            "Unknown",
+        ),
+
+        project_momentum=result.get(
+            "project_momentum",
+            "Unknown",
+        ),
+
+        # =====================================
+        # Performance
+        # =====================================
+
         processing_time_seconds=result.get(
             "processing_time_seconds",
             0.0,
         ),
+
         agent_timings=result.get(
             "agent_timings",
             {},
         ),
 
+        timeline=result.get(
+            "timeline",
+            [],
+        ),
+
+        # =====================================
+        # Coordinator
+        # =====================================
+
         executive_summary=result.get(
             "executive_summary",
             "",
         ),
+
         final_decision=result.get(
             "final_decision",
             "",
         ),
+
         priority_actions=result.get(
             "priority_actions",
             [],
         ),
+
         overall_risk_level=result.get(
             "overall_risk_level",
             "low",
         ),
+
         coordinator_notes=result.get(
             "coordinator_notes",
             [],
@@ -281,6 +396,14 @@ def delete_meeting(meeting_id: str):
         "success": True,
         "message": "Meeting deleted successfully.",
     }
+    
+@router.get(
+    "/dashboard",
+    response_model=DashboardResponse,
+)
+def dashboard():
+
+    return history_service.analyze()
 
 @router.post("/report/pdf")
 def generate_pdf_report(

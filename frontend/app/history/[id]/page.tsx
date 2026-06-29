@@ -10,31 +10,24 @@ function Section({
   title: string;
   items?: string[];
 }) {
-
   if (!items?.length) return null;
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-
       <h2 className="mb-5 text-2xl font-bold text-slate-900">
         {title}
       </h2>
 
       <div className="space-y-3">
-
         {items.map((item, index) => (
-
           <div
             key={index}
             className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-slate-700"
           >
             {item}
           </div>
-
         ))}
-
       </div>
-
     </div>
   );
 }
@@ -46,21 +39,19 @@ function MetricCard({
   title: string;
   value: string;
 }) {
-
   let color = "text-slate-900";
 
   if (value.toLowerCase().includes("high"))
     color = "text-red-600";
-
   else if (value.toLowerCase().includes("medium"))
     color = "text-yellow-600";
-
   else if (value.toLowerCase().includes("low"))
     color = "text-green-600";
+  else if (value.includes("/100"))
+    color = "text-blue-600";
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-
       <p className="text-sm font-medium text-slate-500">
         {title}
       </p>
@@ -68,7 +59,6 @@ function MetricCard({
       <p className={`mt-3 text-3xl font-bold ${color}`}>
         {value}
       </p>
-
     </div>
   );
 }
@@ -93,7 +83,9 @@ export default function MeetingDetails() {
 
   async function loadMeeting() {
 
-    const res = await fetch(`${api}/api/meetings/${id}`);
+    const res = await fetch(
+      `${api}/api/meetings/${id}`
+    );
 
     if (!res.ok) {
       setLoading(false);
@@ -109,40 +101,43 @@ export default function MeetingDetails() {
 
   if (loading) {
     return (
-      <div className="p-10 text-center">
-        Loading...
+      <div className="p-10 text-center text-xl">
+        Loading Meeting...
       </div>
     );
   }
 
   if (!meeting) {
     return (
-      <div className="p-10 text-center">
+      <div className="p-10 text-center text-xl">
         Meeting not found.
       </div>
     );
   }
 
   return (
+
     <main className="min-h-screen bg-slate-100 text-slate-900">
 
       <div className="mx-auto max-w-7xl p-10">
 
         <button
           onClick={() => router.back()}
-          className="mb-8 rounded-xl bg-slate-800 px-4 py-2 text-white"
+          className="mb-8 rounded-xl bg-slate-900 px-5 py-3 text-white hover:bg-slate-700"
         >
           ← Back
         </button>
 
         <div className="rounded-3xl bg-white p-8 shadow-sm">
 
-          <h1 className="text-4xl font-bold text-slate-900">
+          <h1 className="text-4xl font-bold">
             {meeting.meeting_title}
           </h1>
 
-          <p className="mt-2 text-slate-500">
-            {new Date(meeting.created_at).toLocaleString()}
+          <p className="mt-3 text-slate-500">
+            {new Date(
+              meeting.created_at
+            ).toLocaleString()}
           </p>
 
         </div>
@@ -177,62 +172,73 @@ export default function MeetingDetails() {
 
         <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
 
-            <h2 className="text-2xl font-bold text-slate-900">
-                Executive Summary
-            </h2>
+          <h2 className="text-2xl font-bold text-slate-900">
+            Executive Summary
+          </h2>
 
-            <p className="mt-4 leading-8 text-slate-700">
-                {meeting.executive_summary}
-            </p>
+          <p className="mt-4 leading-8 text-slate-700">
+            {meeting.executive_summary}
+          </p>
 
         </div>
 
         <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
 
-            <h2 className="text-2xl font-bold text-slate-900">
-                Final Decision
-            </h2>
+          <h2 className="text-2xl font-bold text-slate-900">
+            Consensus Explanation
+          </h2>
 
-            <p className="mt-4 leading-8 text-slate-700">
-                {meeting.final_decision}
-            </p>
+          <p className="mt-4 leading-8 text-slate-700">
+            {meeting.consensus_reason}
+          </p>
+
+        </div>
+
+        <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+
+          <h2 className="text-2xl font-bold text-slate-900">
+            Final Decision
+          </h2>
+
+          <p className="mt-4 leading-8 text-slate-700">
+            {meeting.final_decision}
+          </p>
 
         </div>
 
         <div className="mt-8">
-
           <Section
             title="Priority Actions"
             items={meeting.priority_actions}
           />
-
         </div>
 
         <div className="mt-8">
+          <Section
+            title="Consensus Factors"
+            items={meeting.consensus_factors}
+          />
+        </div>
 
+        <div className="mt-8">
           <Section
             title="Product Risks"
             items={meeting.risks}
           />
-
         </div>
 
         <div className="mt-8">
-
           <Section
             title="Engineering Recommendations"
             items={meeting.engineering_recommendations}
           />
-
         </div>
 
         <div className="mt-8">
-
           <Section
             title="Finance Recommendations"
             items={meeting.finance_recommendations}
           />
-
         </div>
 
         <div className="mt-8">
@@ -241,6 +247,56 @@ export default function MeetingDetails() {
             title="Risk Recommendations"
             items={meeting.risk_recommendations}
           />
+
+        </div>
+
+        <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+
+          <h2 className="text-2xl font-bold text-slate-900">
+            Agent Execution Timeline
+          </h2>
+
+          <div className="mt-6 space-y-5">
+
+            {Object.entries(meeting.agent_timings).map(
+              ([agent, time]: any) => (
+
+                <div key={agent}>
+
+                  <div className="mb-2 flex justify-between">
+
+                    <span className="font-medium text-slate-900">
+                      {agent}
+                    </span>
+
+                    <span className="text-slate-500">
+                      {Number(time).toFixed(2)}s
+                    </span>
+
+                  </div>
+
+                  <div className="h-3 rounded-full bg-slate-200">
+
+                    <div
+                      className="h-3 rounded-full bg-blue-600 transition-all"
+                      style={{
+                        width: `${Math.min(
+                          (Number(time) /
+                            meeting.processing_time_seconds) *
+                            100,
+                          100
+                        )}%`,
+                      }}
+                    />
+
+                  </div>
+
+                </div>
+
+              )
+            )}
+
+          </div>
 
         </div>
 
@@ -256,5 +312,7 @@ export default function MeetingDetails() {
       </div>
 
     </main>
+
   );
+
 }

@@ -35,6 +35,12 @@ type AnalyzeResponse = {
   meeting_health_score: number;
   meeting_health_label: string;
 
+  history_summary: string;
+  recurring_blockers: string[];
+  risk_trend: string;
+  health_trend: string;
+  project_momentum: string;
+
   processing_time_seconds: number;
   agent_timings: Record<string, number>;
   consensus_reason: string;
@@ -85,6 +91,45 @@ function Section({
       </ul>
     </div>
   );
+}
+
+function TrendBadge({
+  title,
+  value,
+}: {
+  title: string;
+  value: string;
+}) {
+
+  const color =
+    value.toLowerCase().includes("impro")
+      ? "bg-green-100 text-green-700"
+      : value.toLowerCase().includes("decl")
+      ? "bg-red-100 text-red-700"
+      : value.toLowerCase().includes("incre")
+      ? "bg-red-100 text-red-700"
+      : value.toLowerCase().includes("decre")
+      ? "bg-green-100 text-green-700"
+      : "bg-blue-100 text-blue-700";
+
+  return (
+
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+
+      <p className="text-sm text-slate-500">
+        {title}
+      </p>
+
+      <div
+        className={`mt-3 inline-block rounded-full px-4 py-2 text-sm font-semibold ${color}`}
+      >
+        {value}
+      </div>
+
+    </div>
+
+  );
+
 }
 
 function MetricCard({
@@ -469,6 +514,45 @@ export default function Home() {
                 </div>
 
                 <Section title="Consensus Factors" items={result.consensus_factors} />
+                <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+
+                  <h2 className="text-2xl font-semibold text-slate-900">
+
+                    Project Intelligence
+
+                  </h2>
+
+                  <p className="mt-3 leading-7 text-slate-700">
+
+                    {result.history_summary}
+
+                  </p>
+
+                  <div className="mt-6 grid gap-4 md:grid-cols-3">
+
+                    <TrendBadge
+                      title="Risk Trend"
+                      value={result.risk_trend}
+                    />
+
+                    <TrendBadge
+                      title="Health Trend"
+                      value={result.health_trend}
+                    />
+
+                    <TrendBadge
+                      title="Project Momentum"
+                      value={result.project_momentum}
+                    />
+
+                  </div>
+
+                </div>
+
+                <Section
+                  title="Recurring Blockers"
+                  items={result.recurring_blockers}
+                />
                 <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
                   <h2 className="text-2xl font-semibold text-slate-900">
                     Consensus Explanation
