@@ -77,3 +77,19 @@ class MeetingRepository:
         )
 
         return result.deleted_count > 0
+    
+    def get_recent(self, limit: int = 5):
+        meetings = list(
+            self.collection.find().sort(
+                "created_at",
+                -1,
+            ).limit(limit)
+        )
+
+        for meeting in meetings:
+            meeting["_id"] = str(meeting["_id"])
+
+        return meetings
+    
+    def count(self):
+        return self.collection.count_documents({})

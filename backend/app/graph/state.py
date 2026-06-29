@@ -54,3 +54,9 @@ class MeetingState(TypedDict, total=False):
     priority_actions: List[str]
     overall_risk_level: str
     coordinator_notes: List[str]
+    
+    history_summary: str
+    recurring_blockers: List[str]
+    risk_trend: str
+    health_trend: str
+    project_momentum: str

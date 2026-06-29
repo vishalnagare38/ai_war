@@ -14,8 +14,9 @@ class CoordinatorAgent:
         prompt = f"""
 You are the Executive Coordinator for an Enterprise AI Meeting War Room.
 
-Your responsibility is to synthesize the outputs of all specialist agents into
-a concise executive report suitable for senior leadership.
+Your responsibility is to synthesize ALL specialist outputs into a concise executive report for senior leadership.
+
+You also have access to historical project intelligence from previous meetings stored in MongoDB.
 
 ==================================================
 PRODUCT AGENT
@@ -30,7 +31,6 @@ Risks:
 Recommendations:
 {state.get("recommendations", [])}
 
-
 ==================================================
 ENGINEERING AGENT
 ==================================================
@@ -43,7 +43,6 @@ Risks:
 
 Recommendations:
 {state.get("engineering_recommendations", [])}
-
 
 ==================================================
 FINANCE AGENT
@@ -58,7 +57,6 @@ Risks:
 Recommendations:
 {state.get("finance_recommendations", [])}
 
-
 ==================================================
 RISK AGENT
 ==================================================
@@ -72,7 +70,6 @@ Insights:
 Recommendations:
 {state.get("risk_recommendations", [])}
 
-
 ==================================================
 ML PREDICTION
 ==================================================
@@ -85,7 +82,6 @@ Risk Label:
 
 Delay Likelihood:
 {state.get("delay_likelihood")}
-
 
 ==================================================
 CONSENSUS ENGINE
@@ -103,7 +99,6 @@ Consensus Reason:
 Consensus Factors:
 {state.get("consensus_factors", [])}
 
-
 ==================================================
 MEETING HEALTH
 ==================================================
@@ -114,6 +109,24 @@ Health Score:
 Health Label:
 {state.get("meeting_health_label")}
 
+==================================================
+PROJECT HISTORY (MongoDB Intelligence)
+==================================================
+
+Historical Summary:
+{state.get("history_summary", "")}
+
+Recurring Blockers:
+{state.get("recurring_blockers", [])}
+
+Risk Trend:
+{state.get("risk_trend", "Unknown")}
+
+Health Trend:
+{state.get("health_trend", "Unknown")}
+
+Project Momentum:
+{state.get("project_momentum", "Unknown")}
 
 ==================================================
 SYSTEM METRICS
@@ -122,69 +135,102 @@ SYSTEM METRICS
 Processing Timeline:
 {state.get("agent_timings", {})}
 
-
 ==================================================
 
 YOUR TASK
 
-Generate ONLY the following JSON fields.
+Generate ONLY valid JSON.
+
+Return these fields:
 
 1. executive_summary
-- 4–6 executive sentences
-- Mention biggest blocker
-- Mention ML prediction
-- Mention consensus
-- Mention meeting health
-- Mention overall business impact
+
+Write 5-6 executive sentences.
+
+Must include:
+
+• Biggest blocker
+
+• ML prediction
+
+• Consensus
+
+• Meeting Health
+
+• Historical trend
+
+• Business impact
+
+--------------------------------------------------
 
 2. final_decision
-- One concise executive decision.
+
+One concise executive decision.
+
+Mention history if relevant.
+
+--------------------------------------------------
 
 3. priority_actions
-- 4–6 actions
-- Highest priority first
-- No duplicates
+
+Return 5-6 actions.
+
+Highest priority first.
+
+Avoid duplicates.
+
+--------------------------------------------------
 
 4. overall_risk_level
-Must be one of:
+
+Only one of:
+
 low
+
 medium
+
 high
+
+--------------------------------------------------
 
 5. coordinator_notes
 
-Write 4 concise notes.
+Return exactly FOUR concise notes.
 
-They should explain:
+Include:
 
-• Why consensus is high/medium/low.
+• Why consensus is high/medium/low
 
-• Whether ML agrees with the specialist agents.
+• Whether ML agrees with specialists
 
-• Explain Meeting Health.
+• Explain historical trend
 
-• Mention the biggest blocker.
+• Mention biggest blocker
 
 Rules
 
 Never invent facts.
 
-Never contradict any agent.
+Never contradict specialist agents.
 
-Do not repeat every recommendation.
+Use historical information whenever available.
 
-Keep the language executive-level.
+Write executive-level language.
 
-Return ONLY valid JSON.
+Return ONLY JSON.
 """
 
         parsed = call_structured_gemini(
             prompt=prompt,
             schema=CoordinatorAgentOutput,
         )
-        print(state.get("consensus_reason"))
 
-        timings = dict(state.get("agent_timings", {}))
+        timings = dict(
+            state.get(
+                "agent_timings",
+                {},
+            )
+        )
 
         timings["Coordinator Agent"] = round(
             time.perf_counter() - start,
