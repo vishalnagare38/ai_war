@@ -1,11 +1,13 @@
 from pymongo import MongoClient
+from app.core.config import MONGODB_URI, DATABASE_NAME
 
-from app.core.config import (
+client = MongoClient(
     MONGODB_URI,
-    DATABASE_NAME,
+    serverSelectionTimeoutMS=10000,
+    connectTimeoutMS=10000,
+    socketTimeoutMS=10000,
+    retryWrites=True,
 )
-
-client = MongoClient(MONGODB_URI)
 
 db = client[DATABASE_NAME]
 
