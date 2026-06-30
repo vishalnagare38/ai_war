@@ -3,6 +3,13 @@ uvicorn[standard]
 python-dotenv
 pydantic
 langgraph
+google-generativeai
+pymongo
+dnspython
 scikit-learn
 numpy
 pandas
+python-multipart
+python-docx
+pypdf
+reportlab
