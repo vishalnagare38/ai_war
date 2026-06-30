@@ -31,8 +31,13 @@ env/
 # ML MODELS
 # =========================
 
+# Ignore all ML artifacts by default
 *.pkl
 *.joblib
+
+# BUT keep production model files
+!backend/app/ml/model.pkl
+!backend/app/ml/vectorizer.pkl
 
 # =========================
 # NODE
@@ -60,11 +65,18 @@ out/
 .vscode/
 
 # =========================
+# IDE
+# =========================
+
+.idea/
+
+# =========================
 # OS FILES
 # =========================
 
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # =========================
 # PROJECT SPECIFIC
@@ -73,15 +85,9 @@ Thumbs.db
 backend/.env
 frontend/.env.local
 
-# Python
+# =========================
+# PYTHON CACHE
+# =========================
+
 .pytest_cache/
 .mypy_cache/
-
-# IDE
-.idea/
-
-# OS
-Desktop.ini
-
-# Logs
-logs/
