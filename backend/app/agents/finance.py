@@ -7,29 +7,103 @@ from app.llm.structured import call_structured_gemini
 
 class FinanceAgent:
     def analyze(self, transcript: str) -> Dict[str, object]:
-        start = time.time()
+        start = time.perf_counter()
 
         prompt = f"""
-You are the Finance Agent in a multi-agent meeting analysis system.
+You are the Finance Strategy Agent for an enterprise meeting analysis platform.
 
-Analyze the transcript from a finance perspective and return:
-- finance_insights
-- finance_risks
-- finance_recommendations
+Analyze the meeting ONLY from a Finance and Business perspective.
 
-Rules:
-- Be concise and specific.
-- Only use information supported by the transcript.
-- Return valid JSON only.
+Generate ONLY valid JSON.
 
-Transcript:
+Return:
+
+finance_insights
+- Maximum 5 insights.
+- Focus on budget, forecasting, spending, financial impact and business value.
+
+finance_risks
+- Maximum 5 financial risks.
+- Include only risks supported by the transcript.
+- Never discuss engineering implementation.
+
+finance_recommendations
+- Maximum 5 recommendations.
+- Every recommendation must mitigate a financial risk.
+- Focus on:
+    • budget control
+    • forecasting
+    • contingency planning
+    • spending
+    • contractor costs
+    • ROI
+    • business prioritization
+
+Rules
+
+Never recommend:
+
+• API implementation
+• Code changes
+• Engineering solutions
+• QA implementation
+• Technical architecture
+
+Those belong to Engineering.
+
+Never invent facts.
+
+Avoid duplicates.
+
+Return ONLY valid JSON.
+
+Transcript
+
 {transcript}
 """.strip()
 
-        parsed = call_structured_gemini(prompt, FinanceAgentOutput)
+        try:
+
+            parsed = call_structured_gemini(
+                prompt,
+                FinanceAgentOutput,
+            )
+            
+            if len(parsed.finance_recommendations) < 3:
+
+                fallback = [
+                    "Review budget forecasts weekly.",
+                    "Prioritize high-value deliverables.",
+                    "Monitor project burn rate.",
+                    "Prepare contingency budget scenarios.",
+                    "Reduce unnecessary spending.",
+                ]
+
+                existing = set(parsed.finance_recommendations)
+
+                for item in fallback:
+                    if len(parsed.finance_recommendations) >= 5:
+                        break
+                    if item not in existing:
+                        parsed.finance_recommendations.append(item)
+
+        except Exception as e:
+
+            print(f"Finance Agent failed: {e}")
+
+            return {
+
+                "finance_insights": [],
+
+                "finance_risks": [],
+
+                "finance_recommendations": [],
+
+                "agent_used": "FinanceAgent-Fallback",
+
+            }
 
         return {
             **parsed.model_dump(),
             "agent_used": "FinanceAgent-LLM",
-            "_duration": round(time.time() - start, 2),
         }

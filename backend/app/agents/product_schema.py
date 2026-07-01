@@ -3,8 +3,27 @@ from pydantic import BaseModel, Field
 
 
 class ProductAgentOutput(BaseModel):
-    summary: str = Field(description="Short meeting summary focused on product concerns.")
-    action_items: List[str] = Field(description="Concrete action items from the meeting.")
-    risks: List[str] = Field(description="Product or delivery risks identified in the meeting.")
-    recommendations: List[str] = Field(description="Practical recommendations for next steps.")
-    confidence_score: float = Field(description="A value between 0 and 1 representing confidence.")
+
+    summary: str = Field(
+        description="Executive summary."
+    )
+
+    action_items: List[str] = Field(
+        default_factory=list,
+        max_length=5,
+    )
+
+    risks: List[str] = Field(
+        default_factory=list,
+        max_length=5,
+    )
+
+    recommendations: List[str] = Field(
+        default_factory=list,
+        max_length=5,
+    )
+
+    confidence_score: float = Field(
+        ge=0,
+        le=1,
+    )

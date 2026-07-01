@@ -12,11 +12,11 @@ class HistoryIntelligence:
 
         if not previous_meetings:
             return {
-                "history_summary": "This is the first recorded meeting.",
+                "history_summary": "This is the first recorded meeting. Historical trends will become available as more meetings are analyzed.",
                 "recurring_blockers": [],
-                "risk_trend": "unknown",
-                "health_trend": "unknown",
-                "project_momentum": "unknown",
+                "risk_trend": "No historical data",
+                "health_trend": "No historical data",
+                "project_momentum": "No historical data",
             }
 
         blocker_counter = Counter()
@@ -26,35 +26,79 @@ class HistoryIntelligence:
         previous_risk_scores = []
 
         keywords = {
-            "API delay": [
+
+            "API Integration": [
                 "api",
-                "blocked",
-                "blocker",
                 "integration",
+                "vendor",
+                "blocked",
+                "dependency",
             ],
+
             "Testing": [
                 "testing",
                 "test",
+                "qa",
+                "regression",
+                "bug",
+                "defect",
             ],
+
             "Budget": [
                 "budget",
                 "cost",
+                "expense",
+                "spending",
             ],
-            "Deadline": [
+
+            "Timeline": [
                 "deadline",
                 "delay",
+                "schedule",
+                "release",
+                "timeline",
             ],
+
             "Database": [
                 "database",
                 "schema",
+                "migration",
             ],
+
+            "Infrastructure": [
+                "deployment",
+                "server",
+                "infrastructure",
+            ],
+
             "Ownership": [
                 "owner",
                 "ownership",
                 "assign",
+                "resource",
+                "allocation",
+                "frontend",
             ],
         }
 
+        current_text = " ".join(
+
+            current_meeting.get("risks", [])
+
+            + current_meeting.get("recommendations", [])
+
+            + current_meeting.get("engineering_risks", [])
+
+            + current_meeting.get("engineering_recommendations", [])
+
+            + current_meeting.get("finance_risks", [])
+
+            + current_meeting.get("finance_recommendations", [])
+
+            + current_meeting.get("risk_insights", [])
+
+        ).lower()
+        
         for meeting in previous_meetings:
 
             text = " ".join(
@@ -95,6 +139,13 @@ class HistoryIntelligence:
                 )
             )
 
+
+        for blocker, words in keywords.items():
+
+            if any(word in current_text for word in words):
+
+                blocker_counter[blocker] += 1
+                
         recurring = []
 
         for blocker, count in blocker_counter.items():
@@ -102,8 +153,12 @@ class HistoryIntelligence:
             if count >= 2:
 
                 recurring.append(
-                    f"{blocker} appeared in {count} previous meetings."
+
+                    f"{blocker} has remained a recurring blocker across the last {count} meetings."
+
                 )
+        
+        recurring.sort()
 
         current_health = current_meeting.get(
             "meeting_health_score",
@@ -111,15 +166,29 @@ class HistoryIntelligence:
         )
 
         average_previous_health = (
+
             sum(previous_health_scores)
-            / len(previous_health_scores)
+
+            / max(
+
+                len(previous_health_scores),
+
+                1,
+
+            )
+
         )
 
-        if current_health > average_previous_health + 5:
+        health_difference = (
+            current_health
+            - average_previous_health
+        )
+
+        if health_difference >= 8:
 
             health_trend = "improving"
 
-        elif current_health < average_previous_health - 5:
+        elif health_difference <= -8:
 
             health_trend = "declining"
 
@@ -133,15 +202,29 @@ class HistoryIntelligence:
         )
 
         average_previous_risk = (
+
             sum(previous_risk_scores)
-            / len(previous_risk_scores)
+
+            / max(
+
+                len(previous_risk_scores),
+
+                1,
+
+            )
+
         )
 
-        if current_risk > average_previous_risk + 0.05:
+        risk_difference = (
+            current_risk
+            - average_previous_risk
+        )
+
+        if risk_difference >= 0.08:
 
             risk_trend = "increasing"
 
-        elif current_risk < average_previous_risk - 0.05:
+        elif risk_difference <= -0.08:
 
             risk_trend = "decreasing"
 
@@ -154,34 +237,58 @@ class HistoryIntelligence:
             and risk_trend == "decreasing"
         ):
 
-            momentum = "positive"
+            momentum = "Strong Positive"
+
+        elif (
+            health_trend == "improving"
+        ):
+
+            momentum = "Improving"
 
         elif (
             health_trend == "declining"
             and risk_trend == "increasing"
         ):
 
-            momentum = "negative"
+            momentum = "Critical"
+
+        elif (
+            health_trend == "declining"
+        ):
+
+            momentum = "Declining"
 
         else:
 
-            momentum = "mixed"
+            momentum = "Stable"
+
+        recurring = recurring[:5]
+        
+        history_summary = (
+
+            f"Historical analysis across the previous "
+            f"{len(previous_meetings)} meeting(s) indicates "
+            f"an average project health of "
+            f"{round(average_previous_health)}/100 "
+            f"and an average predicted delivery risk of "
+            f"{round(average_previous_risk * 100)}%. "
+            f"Project health is currently "
+            f"{health_trend}, delivery risk is "
+            f"{risk_trend}, resulting in "
+            f"{momentum.lower()} project momentum."
+
+        )
 
         return {
 
-            "history_summary":
-                f"Compared against the last {len(previous_meetings)} meeting(s).",
+            "history_summary": history_summary,
 
-            "recurring_blockers":
-                recurring,
+            "recurring_blockers": recurring,
 
-            "risk_trend":
-                risk_trend,
+            "risk_trend": risk_trend,
 
-            "health_trend":
-                health_trend,
+            "health_trend": health_trend,
 
-            "project_momentum":
-                momentum,
+            "project_momentum": momentum,
 
         }

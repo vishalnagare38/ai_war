@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
 from app.core.config import APP_NAME, CORS_ORIGINS
+print("CORS_ORIGINS =", CORS_ORIGINS)
 
 app = FastAPI(title=APP_NAME)
 

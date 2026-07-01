@@ -4,6 +4,7 @@ import time
 from app.agents.schemas import CoordinatorAgentOutput
 from app.llm.structured import call_structured_gemini
 
+from app.services.deduplicator import Deduplicator
 
 class CoordinatorAgent:
 
@@ -12,11 +13,23 @@ class CoordinatorAgent:
         start = time.perf_counter()
 
         prompt = f"""
-You are the Executive Coordinator for an Enterprise AI Meeting War Room.
+You are the Executive Coordinator of an Enterprise AI Meeting War Room.
 
-Your responsibility is to synthesize ALL specialist outputs into a concise executive report for senior leadership.
+You are the FINAL decision maker.
 
-You also have access to historical project intelligence from previous meetings stored in MongoDB.
+Your responsibility is NOT to summarize every agent.
+
+Your responsibility is to combine evidence from:
+
+• Product Agent
+• Engineering Agent
+• Finance Agent
+• Risk Agent
+• ML Risk Prediction
+• Consensus Engine
+• Historical Intelligence
+
+into ONE executive assessment.
 
 ==================================================
 PRODUCT AGENT
@@ -24,6 +37,9 @@ PRODUCT AGENT
 
 Summary:
 {state.get("summary")}
+
+Action Items:
+{state.get("action_items", [])}
 
 Risks:
 {state.get("risks", [])}
@@ -71,10 +87,10 @@ Recommendations:
 {state.get("risk_recommendations", [])}
 
 ==================================================
-ML PREDICTION
+ML MODEL
 ==================================================
 
-Probability:
+Risk Probability:
 {state.get("ml_risk_probability")}
 
 Risk Label:
@@ -93,97 +109,168 @@ Consensus Score:
 Agreement:
 {state.get("agent_agreement")}
 
-Consensus Reason:
-{state.get("consensus_reason")}
-
 Consensus Factors:
 {state.get("consensus_factors", [])}
 
+Consensus Reason:
+{state.get("consensus_reason")}
+
 ==================================================
-MEETING HEALTH
+PROJECT HEALTH
 ==================================================
 
-Health Score:
+Meeting Health:
 {state.get("meeting_health_score")}/100
 
 Health Label:
 {state.get("meeting_health_label")}
 
 ==================================================
-PROJECT HISTORY (MongoDB Intelligence)
+PROJECT HISTORY
 ==================================================
 
 Historical Summary:
-{state.get("history_summary", "")}
+{state.get("history_summary")}
 
 Recurring Blockers:
 {state.get("recurring_blockers", [])}
 
 Risk Trend:
-{state.get("risk_trend", "Unknown")}
+{state.get("risk_trend")}
 
 Health Trend:
-{state.get("health_trend", "Unknown")}
+{state.get("health_trend")}
 
 Project Momentum:
-{state.get("project_momentum", "Unknown")}
-
-==================================================
-SYSTEM METRICS
-==================================================
-
-Processing Timeline:
-{state.get("agent_timings", {})}
+{state.get("project_momentum")}
 
 ==================================================
 
-YOUR TASK
+IMPORTANT DECISION RULES
 
-Generate ONLY valid JSON.
+The ML model is ONLY ONE signal.
 
-Return these fields:
+Never make the final decision using only ML probability.
 
-1. executive_summary
+Always combine:
 
-Write 5-6 executive sentences.
+1. Specialist Agents
 
-Must include:
+2. Consensus
 
-• Biggest blocker
+3. Historical trends
 
-• ML prediction
+4. ML prediction
 
-• Consensus
+If specialists identify serious delivery risks but ML predicts low probability,
+explain WHY the final executive decision is still Medium or High risk.
 
-• Meeting Health
+Likewise,
 
-• Historical trend
+if ML predicts High risk but specialists identify few issues,
+explain why the project is still manageable.
 
-• Business impact
+Never allow the executive summary to appear contradictory.
 
---------------------------------------------------
+Instead explain WHY multiple signals produce the final decision.
 
-2. final_decision
+Historical trends must influence the decision whenever available.
 
-One concise executive decision.
+Recurring blockers should increase confidence that risks are genuine.
 
-Mention history if relevant.
+Meeting Health should influence urgency.
 
---------------------------------------------------
+==================================================
 
-3. priority_actions
+Return ONLY valid JSON.
 
-Return 5-6 actions.
+Fields
 
-Highest priority first.
+executive_summary
 
-Avoid duplicates.
+Write EXACTLY six concise executive sentences.
 
---------------------------------------------------
+The summary must explain:
 
-4. overall_risk_level
+• biggest delivery blocker
 
-Only one of:
+• customer/business impact
+
+• whether the ML prediction agrees or disagrees with specialists
+
+• why the consensus engine supports the final decision
+
+• how historical trends influence today's assessment
+
+• why the selected risk level is justified
+
+Do NOT summarize each specialist separately.
+
+Instead produce ONE executive narrative.
+
+final_decision
+
+Return ONE executive decision.
+
+Maximum 30 words.
+
+The decision must combine
+
+• delivery readiness
+
+• business impact
+
+• historical intelligence
+
+• specialist agreement
+
+Avoid generic wording like
+
+"Proceed carefully."
+
+Instead write decisions such as
+
+"Proceed only after API stabilization and regression completion."
+
+or
+
+"Delay release until critical integration risks are resolved."
+
+priority_actions
+
+Return EXACTLY six executive actions.
+
+Rules
+
+• Each action must combine recommendations from multiple specialist agents whenever possible.
+
+• Do NOT copy Product, Engineering, Finance or Risk recommendations verbatim.
+
+• Remove duplicate ideas automatically.
+
+• Every action should represent a management decision rather than a task list.
+
+• Highest business impact first.
+
+• Maximum 20 words each.
+
+• Begin every action with a strong verb.
+
+Examples
+
+✓ Stabilize third-party API dependencies before approving release readiness.
+
+✓ Freeze backend interfaces and complete regression testing before deployment.
+
+✗ Monitor API.
+
+✗ Continue testing.
+
+✗ Follow engineering recommendation.
+
+overall_risk_level
+
+Only:
 
 low
 
@@ -191,39 +278,98 @@ medium
 
 high
 
---------------------------------------------------
+This MUST reflect ALL available evidence.
 
-5. coordinator_notes
+coordinator_notes
 
-Return exactly FOUR concise notes.
+Return EXACTLY four concise executive notes.
 
-Include:
+Each note must explain one unique observation.
 
-• Why consensus is high/medium/low
+1. Why the selected risk level is justified.
 
-• Whether ML agrees with specialists
+2. Whether ML agrees or conflicts with specialist analysis.
 
-• Explain historical trend
+3. What historical intelligence reveals.
 
-• Mention biggest blocker
+4. The single biggest blocker preventing successful delivery.
+
+Do NOT repeat recommendations.
+
+Do NOT restate the executive summary.
 
 Rules
 
-Never invent facts.
+Never hallucinate.
 
-Never contradict specialist agents.
+Never repeat sentences.
 
-Use historical information whenever available.
+Never copy specialist recommendations.
 
-Write executive-level language.
+Write concise executive language.
+
+Executive Quality Rules
+
+Avoid repeating the same recommendation across multiple fields.
+
+Do not reuse specialist wording.
+
+Combine related evidence into a single executive conclusion.
+
+Prefer strategic decisions over operational tasks.
+
+If multiple agents identify the same issue, describe it once using executive language.
+
+Historical intelligence should increase confidence, not simply repeat previous blockers.
 
 Return ONLY JSON.
 """
 
-        parsed = call_structured_gemini(
-            prompt=prompt,
-            schema=CoordinatorAgentOutput,
-        )
+        try:
+
+            parsed = call_structured_gemini(
+                prompt=prompt,
+                schema=CoordinatorAgentOutput,
+            )
+
+        except Exception as e:
+
+            print(f"Coordinator Agent failed: {e}")
+
+            return {
+
+                "executive_summary":
+                    "Executive summary could not be generated because the coordinator model was unavailable.",
+
+                "final_decision":
+                    "Manual review recommended.",
+
+                "priority_actions": [],
+
+                "overall_risk_level":
+                    state.get(
+                        "risk_level",
+                        "medium",
+                    ),
+
+                "coordinator_notes": [
+
+                    "Coordinator agent unavailable.",
+
+                    "Fallback response generated.",
+
+                ],
+
+                "agent_used":
+                    "CoordinatorAgent-Fallback",
+
+                "agent_timings":
+                    state.get(
+                        "agent_timings",
+                        {},
+                    ),
+
+            }
 
         timings = dict(
             state.get(
@@ -232,13 +378,23 @@ Return ONLY JSON.
             )
         )
 
-        timings["Coordinator Agent"] = round(
-            time.perf_counter() - start,
-            2,
+        timings["Coordinator Agent"] = max(
+            round(time.perf_counter() - start, 3),
+            0.01,
+        )
+
+        data = parsed.model_dump()
+
+        data["priority_actions"] = Deduplicator.unique(
+            data.get("priority_actions", [])
+        )
+
+        data["coordinator_notes"] = Deduplicator.unique(
+            data.get("coordinator_notes", [])
         )
 
         return {
-            **parsed.model_dump(),
+            **data,
             "agent_used": "CoordinatorAgent-LLM",
             "agent_timings": timings,
         }

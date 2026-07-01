@@ -50,40 +50,69 @@ def _build_theme_factors(state: Dict[str, object]) -> List[str]:
     }
 
     themes = {
-        "API delay / blocker": [
+
+        "API Integration Delay": [
             "api",
-            "block",
-            "blocked",
-            "blocker",
             "integration",
+            "vendor",
+            "blocked",
+            "dependency",
+            "latency",
         ],
-        "Testing delay": [
+
+        "Testing Coverage": [
             "testing",
             "test",
-            "behind schedule",
-            "deadline",
+            "qa",
+            "regression",
+            "coverage",
+            "bug",
+            "defect",
         ],
-        "Budget constraint": [
+
+        "Budget Pressure": [
             "budget",
             "cost",
-            "cost control",
+            "forecast",
+            "expense",
+            "spending",
             "overrun",
         ],
-        "Scope finalization": [
-            "mvp scope",
-            "scope",
-            "finalize",
-            "finalization",
+
+        "Timeline Risk": [
+            "deadline",
+            "delay",
+            "schedule",
+            "timeline",
+            "release",
+            "launch",
+            "milestone",
         ],
-        "Ownership gap": [
+
+        "Resource Allocation": [
+            "owner",
             "ownership",
             "assign",
-            "owner",
+            "resource",
+            "allocation",
+            "frontend",
+            "engineer",
         ],
-        "Database schema follow-up": [
+
+        "Database Changes": [
+            "database",
             "schema",
-            "database schema",
+            "migration",
         ],
+
+        "Performance Optimization": [
+            "performance",
+            "optimization",
+            "latency",
+            "slow",
+            "response time",
+        ],
+
     }
 
     factors: List[str] = []
@@ -100,8 +129,13 @@ def _build_theme_factors(state: Dict[str, object]) -> List[str]:
         matched = sorted(set(matched))
 
         if len(matched) >= 2:
+
             factors.append(
-                f"{theme} is consistently identified by {', '.join(matched)}."
+
+                f"{theme} was independently highlighted by "
+
+                f"{', '.join(matched)} teams."
+
             )
 
     ml_probability = float(
@@ -124,29 +158,46 @@ def _compute_meeting_health(
 
     penalty = 0
 
-    penalty += int(ml_probability * 25)
-    penalty += int((1 - consensus_score) * 20)
+    penalty += round(ml_probability * 20)
 
-    if any("API delay" in x for x in factors):
+    penalty += round((1-consensus_score) * 18)
+
+    if any("API" in x for x in factors):
         penalty += 6
 
-    if any("Testing delay" in x for x in factors):
+    if any("Testing" in x for x in factors):
+        penalty += 5
+
+    if any("Budget" in x for x in factors):
         penalty += 6
 
-    if any("Budget constraint" in x for x in factors):
-        penalty += 8
+    if any("Timeline" in x for x in factors):
+        penalty += 5
 
     score = max(0, min(100, 100 - penalty))
 
-    if score >= 85:
+    if score >= 90:
+
+        label = "Excellent"
+
+    elif score >= 75:
+
         label = "Healthy"
-    elif score >= 70:
+
+    elif score >= 60:
+
         label = "Stable"
-    elif score >= 50:
+
+    elif score >= 40:
+
         label = "Needs Attention"
-    elif score >= 30:
+
+    elif score >= 20:
+
         label = "At Risk"
+
     else:
+
         label = "Critical"
 
     return score, label
@@ -156,7 +207,6 @@ def consensus_node(state: Dict[str, object]) -> Dict[str, object]:
 
     start = time.perf_counter()
 
-    # IMPORTANT: Fixes your NameError
     timings = dict(state.get("agent_timings", {}))
 
     product_score = _score_from_risk_count(
@@ -194,7 +244,7 @@ def consensus_node(state: Dict[str, object]) -> Dict[str, object]:
         / len(scores)
     )
 
-    consensus_score = 1.0 - (spread * 1.8)
+    consensus_score = 1.0 - (spread * 1.35)
 
     consensus_factors = _build_theme_factors(state)
 
@@ -226,27 +276,47 @@ def consensus_node(state: Dict[str, object]) -> Dict[str, object]:
     if agreement == "high":
 
         consensus_reason = (
-            f"High agreement was reached because "
-            f"{len(consensus_factors)} common project themes "
-            f"were independently identified across multiple "
-            f"specialist agents. The ML model reinforces this "
-            f"assessment with a predicted high-risk probability "
-            f"of {ml_score*100:.0f}%."
+
+            f"The specialist agents reached strong agreement "
+
+            f"because {len(consensus_factors)} recurring project "
+
+            f"themes were independently identified. "
+
+            f"The ML model also indicates a "
+
+            f"{ml_score*100:.0f}% predicted delivery risk, "
+
+            f"which is consistent with the specialist assessments."
+
         )
 
     elif agreement == "medium":
 
         consensus_reason = (
-            "Most specialist agents agree on the major project "
-            "risks, although there are some differences in "
-            "their recommended actions."
+
+            "Most specialist agents agreed on the major "
+
+            "delivery risks, although there were moderate "
+
+            "differences in prioritization and recommended "
+
+            "mitigation strategies."
+
         )
 
     else:
 
         consensus_reason = (
-            "Specialist agents identified different project "
-            "concerns, resulting in relatively low consensus."
+
+            "Specialist agents identified substantially "
+
+            "different concerns, indicating that additional "
+
+            "project clarification and alignment are required "
+
+            "before making major delivery decisions."
+
         )
 
     timings["Consensus Engine"] = round(
