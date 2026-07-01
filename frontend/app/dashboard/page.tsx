@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react';
 
+import MetricCard from '@/components/MetricCard';
+import PageHeader from '@/components/PageHeader';
+import Section from '@/components/Section';
+import TrendBadge from '@/components/TrendBadge';
+
 type DashboardData = {
   total_meetings: number;
   average_health: number;
@@ -10,28 +15,42 @@ type DashboardData = {
   healthy_meetings: number;
 
   history_summary: string;
+
   recurring_blockers: string[];
 
   risk_trend: string[];
+
   health_trend: number[];
 
   project_momentum: string;
 };
 
-function MetricCard({
-  title,
-  value,
-  color = 'text-slate-900',
-}: {
-  title: string;
-  value: string | number;
-  color?: string;
-}) {
-  return (
-    <div className="rounded-3xl border border-slate-300 bg-white p-6 shadow-md transition hover:shadow-xl">
-      <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+function HealthRow({ meeting, score }: { meeting: number; score: number }) {
+  const color =
+    score >= 80
+      ? 'bg-green-600'
+      : score >= 60
+        ? 'bg-blue-600'
+        : score >= 40
+          ? 'bg-amber-500'
+          : 'bg-red-600';
 
-      <h2 className={`mt-4 text-4xl font-extrabold ${color}`}>{value}</h2>
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-slate-700">Meeting {meeting}</span>
+
+        <span className="text-sm font-semibold text-slate-900">{score}/100</span>
+      </div>
+
+      <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+        <div
+          className={`h-full rounded-full ${color}`}
+          style={{
+            width: `${score}%`,
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -41,7 +60,7 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(true);
 
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:8000';
 
   useEffect(() => {
     loadDashboard();
@@ -63,9 +82,11 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
-        <div className="rounded-3xl border border-slate-200 bg-white p-10 shadow-xl">
-          <h1 className="text-3xl font-bold text-slate-900">Loading Dashboard...</h1>
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-7xl px-6 py-12">
+          <div className="rounded-[32px] border border-slate-200 bg-white p-12 text-center shadow-sm">
+            <h2 className="text-3xl font-semibold text-slate-900">Loading Dashboard...</h2>
+          </div>
         </div>
       </main>
     );
@@ -73,163 +94,128 @@ export default function DashboardPage() {
 
   if (!dashboard) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
-        <div className="rounded-3xl border border-red-200 bg-white p-10 shadow-xl">
-          <h1 className="text-3xl font-bold text-red-600">Dashboard unavailable.</h1>
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-7xl px-6 py-12">
+          <div className="rounded-[32px] border border-red-200 bg-white p-12 text-center shadow-sm">
+            <h2 className="text-3xl font-semibold text-red-600">Dashboard unavailable.</h2>
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <div className="mx-auto max-w-7xl p-10">
-        <div className="mb-10">
-          <div className="inline-flex rounded-full bg-blue-100 px-4 py-1 text-sm font-semibold text-blue-700">
-            Enterprise Analytics
-          </div>
+    <main className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-7xl px-6 py-10">
+        <PageHeader
+          badge="Enterprise Intelligence"
+          title="Project Intelligence Dashboard"
+          description="Historical analytics generated from previous AI meeting analyses, showing long-term delivery trends, recurring blockers and overall project health."
+        />
 
-          <h1 className="mt-4 text-5xl font-extrabold tracking-tight text-slate-900">
-            Project Intelligence Dashboard
-          </h1>
-
-          <p className="mt-3 max-w-3xl text-lg text-slate-600">
-            Historical insights generated from previous AI meeting analyses.
-          </p>
-        </div>
-
-        <div className="grid gap-5 md:grid-cols-5">
-          <MetricCard title="Meetings" value={dashboard.total_meetings} />
+        <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+          <MetricCard
+            label="Meetings"
+            value={dashboard.total_meetings.toString()}
+            subtext="Stored Reports"
+          />
 
           <MetricCard
-            title="Average Health"
+            label="Average Health"
             value={`${dashboard.average_health}/100`}
-            color="text-blue-600"
+            subtext="Historical Average"
           />
 
           <MetricCard
-            title="Average Risk"
+            label="Average Risk"
             value={`${(dashboard.average_risk_probability * 100).toFixed(0)}%`}
-            color="text-red-600"
+            subtext="ML Prediction"
           />
 
-          <MetricCard title="High Risk" value={dashboard.high_risk_meetings} color="text-red-600" />
+          <MetricCard
+            label="High Risk"
+            value={dashboard.high_risk_meetings.toString()}
+            subtext="Projects"
+          />
 
-          <MetricCard title="Healthy" value={dashboard.healthy_meetings} color="text-green-600" />
+          <MetricCard
+            label="Healthy"
+            value={dashboard.healthy_meetings.toString()}
+            subtext="Projects"
+          />
         </div>
 
-        <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
-          <h2 className="text-3xl font-bold text-slate-900">Executive History Summary</h2>
+        <div className="mt-10 rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+          <h2 className="text-3xl font-semibold text-slate-900">Executive Historical Summary</h2>
 
           <p className="mt-5 leading-8 text-slate-700">{dashboard.history_summary}</p>
         </div>
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-2">
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
-            <h2 className="mb-6 text-3xl font-bold text-slate-900">Recurring Blockers</h2>
+        <div className="mt-10 grid gap-8 xl:grid-cols-2">
+          <Section title="Recurring Blockers" items={dashboard.recurring_blockers} />
 
-            {dashboard.recurring_blockers.length === 0 ? (
-              <p className="text-slate-500">No recurring blockers detected.</p>
-            ) : (
-              <div className="flex flex-wrap gap-3">
-                {dashboard.recurring_blockers.map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border border-red-300 bg-red-100 px-5 py-2 text-sm font-bold text-red-800 shadow-sm"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <h2 className="text-3xl font-semibold text-slate-900">Project Momentum</h2>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
-            <h2 className="mb-6 text-3xl font-bold text-slate-900">Project Momentum</h2>
+            <p className="mt-3 text-slate-500">
+              Overall delivery direction derived from historical meetings.
+            </p>
 
-            <div
-              className={`inline-flex rounded-2xl px-6 py-4 text-4xl font-extrabold shadow-md ${
-                dashboard.project_momentum === 'Positive'
-                  ? 'bg-green-100 text-green-700'
-                  : dashboard.project_momentum === 'Negative'
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-yellow-100 text-yellow-700'
-              }`}
-            >
-              {dashboard.project_momentum}
+            <div className="mt-8">
+              <TrendBadge title="Current Momentum" value={dashboard.project_momentum} />
             </div>
           </div>
         </div>
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-2">
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
-            <h2 className="mb-6 text-3xl font-bold text-slate-900">Risk Trend</h2>
+        <div className="mt-10 grid gap-8 xl:grid-cols-2">
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <h2 className="text-3xl font-semibold text-slate-900">Risk Trend</h2>
 
-            {dashboard.risk_trend.length === 0 ? (
-              <p className="text-slate-500">No trend data available.</p>
-            ) : (
-              <div className="space-y-3">
-                {dashboard.risk_trend.map((risk, index) => {
-                  const badgeColor =
+            <p className="mt-2 text-slate-500">Risk evolution across previous meetings.</p>
+
+            <div className="mt-8 space-y-4">
+              {dashboard.risk_trend.length === 0 ? (
+                <p className="text-slate-500">No historical trend available.</p>
+              ) : (
+                dashboard.risk_trend.map((risk, index) => {
+                  const badge =
                     risk.toLowerCase() === 'high'
-                      ? 'bg-red-100 text-red-700 border-red-300'
+                      ? 'bg-red-100 text-red-700'
                       : risk.toLowerCase() === 'medium'
-                        ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
-                        : 'bg-green-100 text-green-700 border-green-300';
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-green-100 text-green-700';
 
                   return (
                     <div
                       key={index}
-                      className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm"
+                      className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4"
                     >
-                      <span className="font-semibold text-slate-800">Meeting {index + 1}</span>
+                      <span className="font-medium text-slate-700">Meeting {index + 1}</span>
 
-                      <span className={`rounded-full border px-4 py-1 font-bold ${badgeColor}`}>
+                      <span className={`rounded-full px-4 py-2 text-sm font-semibold ${badge}`}>
                         {risk}
                       </span>
                     </div>
                   );
-                })}
-              </div>
-            )}
+                })
+              )}
+            </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
-            <h2 className="mb-6 text-3xl font-bold text-slate-900">Health Trend</h2>
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <h2 className="text-3xl font-semibold text-slate-900">Health Trend</h2>
 
-            {dashboard.health_trend.length === 0 ? (
-              <p className="text-slate-500">No health trend available.</p>
-            ) : (
-              <div className="space-y-5">
-                {dashboard.health_trend.map((score, index) => (
-                  <div
-                    key={index}
-                    className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-                  >
-                    <div className="mb-3 flex items-center justify-between">
-                      <span className="font-semibold text-slate-800">Meeting {index + 1}</span>
+            <p className="mt-2 text-slate-500">Historical project health across meetings.</p>
 
-                      <span className="font-bold text-slate-900">{score}/100</span>
-                    </div>
-
-                    <div className="h-4 overflow-hidden rounded-full bg-slate-200">
-                      <div
-                        className={`h-full rounded-full ${
-                          score >= 75
-                            ? 'bg-green-600'
-                            : score >= 50
-                              ? 'bg-yellow-500'
-                              : 'bg-red-600'
-                        }`}
-                        style={{
-                          width: `${score}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="mt-8 space-y-6">
+              {dashboard.health_trend.length === 0 ? (
+                <p className="text-slate-500">No historical health available.</p>
+              ) : (
+                dashboard.health_trend.map((score, index) => (
+                  <HealthRow key={index} meeting={index + 1} score={score} />
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>

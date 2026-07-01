@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import PageHeader from '@/components/PageHeader';
+import MetricCard from '@/components/MetricCard';
+
 interface Meeting {
   _id: string;
   meeting_id: string;
@@ -26,7 +29,7 @@ export default function HistoryPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:8000';
 
   useEffect(() => {
     loadDashboard();
@@ -35,10 +38,8 @@ export default function HistoryPage() {
 
   async function loadDashboard() {
     try {
-      const response = await fetch(`${API_URL}/api/dashboard`);
-
-      const data = await response.json();
-
+      const res = await fetch(`${API}/api/dashboard`);
+      const data = await res.json();
       setStats(data);
     } catch (err) {
       console.error(err);
@@ -47,10 +48,8 @@ export default function HistoryPage() {
 
   async function loadMeetings() {
     try {
-      const response = await fetch(`${API_URL}/api/meetings`);
-
-      const data = await response.json();
-
+      const res = await fetch(`${API}/api/meetings`);
+      const data = await res.json();
       setMeetings(data);
     } catch (err) {
       console.error(err);
@@ -63,7 +62,7 @@ export default function HistoryPage() {
     if (!confirm('Delete this meeting?')) return;
 
     try {
-      await fetch(`${API_URL}/api/meetings/${id}`, {
+      await fetch(`${API}/api/meetings/${id}`, {
         method: 'DELETE',
       });
 
@@ -76,144 +75,148 @@ export default function HistoryPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-7xl p-10">
-        <div className="rounded-3xl bg-white p-10 text-center shadow">
-          <h2 className="text-2xl font-semibold text-slate-900">Loading Meeting History...</h2>
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-7xl px-6 py-12">
+          <div className="rounded-[32px] border border-slate-200 bg-white p-12 text-center shadow-sm">
+            <h2 className="text-3xl font-semibold text-slate-900">Loading Meeting History...</h2>
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-7xl p-10">
-      <div className="mb-10">
-        <h1 className="text-4xl font-bold text-slate-400">Meeting Dashboard</h1>
+    <main className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-7xl px-6 py-10">
+        <PageHeader
+          badge="Enterprise Intelligence"
+          title="Meeting History"
+          description="Review every analyzed meeting, monitor historical project health, and revisit executive AI reports."
+        />
 
-        <p className="mt-2 text-slate-500">Enterprise analytics for all analyzed meetings.</p>
-      </div>
+        {stats && (
+          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+            <MetricCard
+              label="Meetings"
+              value={stats.total_meetings.toString()}
+              subtext="Stored Reports"
+            />
 
-      {stats && (
-        <div className="mb-10 grid gap-5 md:grid-cols-5">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Total Meetings</p>
+            <MetricCard
+              label="Average Health"
+              value={`${stats.average_health}/100`}
+              subtext="Historical Average"
+            />
 
-            <h2 className="mt-3 text-4xl font-bold text-slate-900">{stats.total_meetings}</h2>
+            <MetricCard
+              label="Average Risk"
+              value={`${(stats.average_risk_probability * 100).toFixed(0)}%`}
+              subtext="ML Prediction"
+            />
+
+            <MetricCard
+              label="High Risk"
+              value={stats.high_risk_meetings.toString()}
+              subtext="Projects"
+            />
+
+            <MetricCard
+              label="Healthy"
+              value={stats.healthy_meetings.toString()}
+              subtext="Projects"
+            />
           </div>
+        )}
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Avg Health</p>
+        <div className="mt-12">
+          <h2 className="text-3xl font-semibold text-slate-900">Saved Executive Reports</h2>
 
-            <h2 className="mt-3 text-4xl font-bold text-blue-600">{stats.average_health}</h2>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Avg Risk</p>
-
-            <h2 className="mt-3 text-4xl font-bold text-red-600">
-              {(stats.average_risk_probability * 100).toFixed(0)}%
-            </h2>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">High Risk</p>
-
-            <h2 className="mt-3 text-4xl font-bold text-red-700">{stats.high_risk_meetings}</h2>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Healthy</p>
-
-            <h2 className="mt-3 text-4xl font-bold text-green-600">{stats.healthy_meetings}</h2>
-          </div>
+          <p className="mt-2 text-slate-500">Every analyzed meeting stored inside MongoDB.</p>
         </div>
-      )}
 
-      <div className="mb-10">
-        <h2 className="text-3xl font-bold text-slate-400">Meeting History</h2>
+        {meetings.length === 0 ? (
+          <div className="mt-8 rounded-[32px] border border-slate-200 bg-white p-12 text-center shadow-sm">
+            <h3 className="text-2xl font-semibold text-slate-900">No Meeting Reports Found</h3>
 
-        <p className="mt-2 text-slate-500">Previously analyzed meetings stored in MongoDB.</p>
-      </div>
+            <p className="mt-3 text-slate-500">
+              Analyze your first meeting to build historical intelligence.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-8 space-y-6">
+            {meetings.map((meeting) => {
+              const riskColor =
+                meeting.overall_risk_level === 'high'
+                  ? 'bg-red-100 text-red-700'
+                  : meeting.overall_risk_level === 'medium'
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-green-100 text-green-700';
 
-      {meetings.length === 0 ? (
-        <div className="rounded-3xl bg-white p-10 text-center shadow">
-          <h2 className="text-2xl font-semibold text-slate-900">No meetings found</h2>
-
-          <p className="mt-3 text-slate-500">Analyze your first meeting to see it here.</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {meetings.map((meeting) => {
-            const healthColor =
-              meeting.meeting_health_label === 'Healthy'
-                ? 'bg-green-100 text-green-700'
-                : meeting.meeting_health_label === 'Stable'
-                  ? 'bg-blue-100 text-blue-700'
-                  : meeting.meeting_health_label === 'Needs Attention'
-                    ? 'bg-yellow-100 text-yellow-700'
-                    : meeting.meeting_health_label === 'At Risk'
-                      ? 'bg-orange-100 text-orange-700'
+              const healthColor =
+                meeting.meeting_health_label === 'Healthy'
+                  ? 'bg-green-100 text-green-700'
+                  : meeting.meeting_health_label === 'Stable'
+                    ? 'bg-blue-100 text-blue-700'
+                    : meeting.meeting_health_label === 'Needs Attention'
+                      ? 'bg-amber-100 text-amber-700'
                       : 'bg-red-100 text-red-700';
 
-            const riskColor =
-              meeting.overall_risk_level.toLowerCase() === 'high'
-                ? 'bg-red-100 text-red-700'
-                : meeting.overall_risk_level.toLowerCase() === 'medium'
-                  ? 'bg-yellow-100 text-yellow-700'
-                  : 'bg-green-100 text-green-700';
+              return (
+                <div
+                  key={meeting._id}
+                  className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                >
+                  <div className="flex flex-col gap-8 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-semibold text-slate-900">
+                        {meeting.meeting_title}
+                      </h3>
 
-            return (
-              <div
-                key={meeting._id}
-                className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-lg"
-              >
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-semibold text-slate-900">
-                      {meeting.meeting_title}
-                    </h3>
+                      <p className="mt-2 text-sm text-slate-500">
+                        {new Date(meeting.created_at).toLocaleString()}
+                      </p>
 
-                    <p className="mt-2 text-sm text-slate-500">
-                      {new Date(meeting.created_at).toLocaleString()}
-                    </p>
+                      <div className="mt-6 flex flex-wrap gap-3">
+                        <span
+                          className={`rounded-full px-4 py-2 text-sm font-semibold ${riskColor}`}
+                        >
+                          {meeting.overall_risk_level.toUpperCase()}
+                        </span>
 
-                    <div className="mt-5 flex flex-wrap gap-3">
-                      <span className={`rounded-full px-4 py-2 text-sm font-semibold ${riskColor}`}>
-                        {meeting.overall_risk_level.toUpperCase()}
-                      </span>
+                        <span className="rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">
+                          {meeting.meeting_health_score}/100
+                        </span>
 
-                      <span className="rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">
-                        {meeting.meeting_health_score}/100
-                      </span>
+                        <span
+                          className={`rounded-full px-4 py-2 text-sm font-semibold ${healthColor}`}
+                        >
+                          {meeting.meeting_health_label}
+                        </span>
+                      </div>
+                    </div>
 
-                      <span
-                        className={`rounded-full px-4 py-2 text-sm font-semibold ${healthColor}`}
+                    <div className="flex gap-3">
+                      <Link
+                        href={`/history/${meeting.meeting_id}`}
+                        className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold !text-white transition hover:bg-slate-800"
                       >
-                        {meeting.meeting_health_label}
-                      </span>
+                        View Report
+                      </Link>
+
+                      <button
+                        onClick={() => deleteMeeting(meeting._id)}
+                        className="rounded-2xl border border-red-200 bg-red-50 px-6 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex flex-wrap gap-3">
-                    <Link
-                      href={`/history/${meeting.meeting_id}`}
-                      className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white transition hover:bg-slate-700"
-                    >
-                      View Report
-                    </Link>
-
-                    <button
-                      onClick={() => deleteMeeting(meeting._id)}
-                      className="rounded-xl bg-red-600 px-5 py-3 font-medium text-white transition hover:bg-red-700"
-                    >
-                      Delete
-                    </button>
-                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
     </main>
   );
 }
